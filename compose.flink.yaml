@@ -1,0 +1,47 @@
+
+services:
+  jobmanager:
+    image: tp06-flink:1.20.3
+    container_name: tp06-flink-jobmanager
+    command: jobmanager
+    ports:
+      - "8081:8081"
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+    networks:
+      - flink-net
+
+  taskmanager:
+    image: tp06-flink:1.20.3
+    container_name: tp06-flink-taskmanager
+    command: taskmanager
+    depends_on:
+      - jobmanager
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+    networks:
+      - flink-net
+
+  sql-client:
+    image: tp06-flink:1.20.3
+    container_name: tp06-flink-sql-client
+    command: bin/sql-client.sh
+    depends_on:
+      - jobmanager
+    stdin_open: true
+    tty: true
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+    volumes:
+      - ./flink_window.sql:/opt/flink/sql/flink_window.sql:ro
+    networks:
+      - flink-net
+
+networks:
+  flink-net:
+    external: true
+    name: tp05-kafka_default

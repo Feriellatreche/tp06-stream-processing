@@ -1,15 +1,25 @@
 
+SET 'execution.runtime-mode' = 'streaming';
+
+SET 'sql-client.execution.result-mode' = 'TABLEAU';
+
 CREATE TABLE campus_events (
     eventId INT,
     studentId STRING,
     eventType STRING,
     department STRING,
-    eventTime TIMESTAMP(3),
-    WATERMARK FOR eventTime AS eventTime - INTERVAL '30' SECOND
+    eventTime STRING,
+
+    event_ts AS TO_TIMESTAMP(
+        SUBSTRING(eventTime, 1, 19),
+        'yyyy-MM-dd''T''HH:mm:ss'
+    ),
+
+    WATERMARK FOR event_ts AS event_ts - INTERVAL '30' SECOND
 ) WITH (
     'connector' = 'kafka',
     'topic' = 'campus-events',
-    'properties.bootstrap.servers' = 'localhost:9092',
+    'properties.bootstrap.servers' = 'tp05-kafka:29092',
     'properties.group.id' = 'tp06-flink',
     'scan.startup.mode' = 'earliest-offset',
     'format' = 'json'
@@ -23,7 +33,7 @@ SELECT
 FROM TABLE(
     TUMBLE(
         TABLE campus_events,
-        DESCRIPTOR(eventTime),
+        DESCRIPTOR(event_ts),
         INTERVAL '1' MINUTE
     )
 )
